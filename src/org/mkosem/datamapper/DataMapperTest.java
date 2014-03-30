@@ -3,6 +3,7 @@ package org.mkosem.datamapper;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.mkosem.datamapper.DataMapper.DataMapping;
 import org.mkosem.datamapper.testobjects.AllPrimitiveClass;
@@ -82,6 +83,11 @@ public class DataMapperTest {
 				}});
 		}
 		executor.shutdown();
+		try {
+			executor.awaitTermination(30, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		System.out.println("Execution time in ms: " + (System.currentTimeMillis() - startTime));
 	}
 	
