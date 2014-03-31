@@ -3,16 +3,14 @@ package org.mkosem.datamapper;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.beanutils.MethodUtils;
 import org.mkosem.datamapper.testobjects.IDataModelObject;
 
 public class DataMapper {
-	private static final ConcurrentHashMap<Class<?>, DataMapping> classMappings = new ConcurrentHashMap<Class<?>, DataMapping>(16, 1F, 1);
+	private static final ConcurrentHashMap<Class<?>, DataMapping> classMappings = new ConcurrentHashMap<Class<?>, DataMapping>(16, 1F, Runtime.getRuntime().availableProcessors());
 	private static final String SET_PREFIX = "set";
 
 
@@ -122,7 +120,7 @@ public class DataMapper {
 
 	class DataMapping {
 		private final Class<?> modelClass;
-		private final Map<String,Method> fieldMappings = new HashMap<String, Method>();
+		private final ConcurrentHashMap<String,Method> fieldMappings = new ConcurrentHashMap<String, Method>(8, 1f, 1);
 		
 		DataMapping(Class<?> argModelClass) {
 			modelClass = argModelClass;
@@ -133,8 +131,9 @@ public class DataMapper {
 			if (mappingMethod == null) {
 				try {
 					mappingMethod = getMethodForClass(modelClass, argFieldName, argParameter);
-					synchronized (this) {
-						fieldMappings.put(argFieldName, mappingMethod);
+					Method previousMapping = fieldMappings.putIfAbsent(argFieldName, mappingMethod);
+					if (previousMapping != null) {
+						mappingMethod = previousMapping;
 					}
 				} catch (Exception e) {
 					e.printStackTrace();

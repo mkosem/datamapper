@@ -26,12 +26,12 @@ public class DataMapperTest {
 	
 	public static void main(String[] args) {
 		DataMapperTest mapperClass = new DataMapperTest();
-		mapperClass.testAllWrapped();
-		mapperClass.testAllPrimitive();
-		mapperClass.testSetAllWrapped();
+		mapperClass.testSetConcurrently();
 		mapperClass.testSetAllPrimitive();
+		mapperClass.testSetAllWrapped();
+		mapperClass.testAllPrimitive();
+		mapperClass.testAllWrapped();
 	}
-	
 	
 	public void testAllPrimitive() {
 		System.out.println("primitive");
@@ -41,6 +41,7 @@ public class DataMapperTest {
 			System.out.println(mapping.getSetterForField(methodNames[i], methodParameters[i]));
 		}
 	}
+	
 	
 	public void testAllWrapped() {
 		System.out.println("wrapped");
@@ -53,7 +54,6 @@ public class DataMapperTest {
 	
 	public void testSetAllPrimitive() {
 		System.out.println("primitive");
-		
 		DataMapper dataMapper = new DataMapper();
 		List<IDataModelObject> wrappedClassResults = dataMapper.mapValuesToObject(AllPrimitiveClass.class, methodNames, new Object[][]{methodParameters});
 		AllPrimitiveClass primitiveClass = (AllPrimitiveClass) wrappedClassResults.get(0);
@@ -66,29 +66,6 @@ public class DataMapperTest {
 		System.out.println(primitiveClass.getTestByte());
 		System.out.println(primitiveClass.getTestBytes());
 		System.out.println(primitiveClass.getTestShort());
-		
-		ExecutorService executor = Executors.newFixedThreadPool(256);
-		long startTime = System.currentTimeMillis();
-		for (int i = 0 ; i< 10000000 ; i++) {
-			executor.submit(new Runnable(){
-				@Override
-				public void run() {
-					try {
-						DataMapper dataMapper = new DataMapper();
-						List<IDataModelObject> wrappedClassResults = dataMapper.mapValuesToObject(AllPrimitiveClass.class, methodNames, new Object[][]{methodParameters});
-						wrappedClassResults.get(0);
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}});
-		}
-		executor.shutdown();
-		try {
-			executor.awaitTermination(30, TimeUnit.MINUTES);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Execution time in ms: " + (System.currentTimeMillis() - startTime));
 	}
 	
 	public void testSetAllWrapped() {
@@ -105,6 +82,31 @@ public class DataMapperTest {
 		System.out.println(wrappedClass.getTestByte());
 		System.out.println(wrappedClass.getTestBytes());
 		System.out.println(wrappedClass.getTestShort());
+	}
+	
+	public void testSetConcurrently() {
+		ExecutorService executor = Executors.newFixedThreadPool(256);
+		long startTime = System.currentTimeMillis();
+		for (int i = 0 ; i< 5000000 ; i++) {
+			executor.submit(new Runnable(){
+				@Override
+				public void run() {
+					try {
+						DataMapper dataMapper = new DataMapper();
+						dataMapper.mapValuesToObject(AllWrappedClass.class, methodNames, new Object[][]{methodParameters});
+						dataMapper.mapValuesToObject(AllPrimitiveClass.class, methodNames, new Object[][]{methodParameters});
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}});
+		}
+		executor.shutdown();
+		try {
+			executor.awaitTermination(30, TimeUnit.MINUTES);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Execution time in ms: " + (System.currentTimeMillis() - startTime));
 	}
 	
 }
